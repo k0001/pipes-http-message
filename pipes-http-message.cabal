@@ -1,0 +1,33 @@
+name:                pipes-http-message
+version:             0.0.1
+synopsis:            Parse streamed HTTP messages using Pipes
+description:         Parse streamed HTTP messages using Pipes
+homepage:            https://github.com/k0001/pipes-http-message.git
+license:             BSD3
+license-file:        LICENSE
+author:              Renzo Carbonara
+maintainer:          renzocarbonaraλgmail.com
+copyright:           Copyright (c) 2013 Renzo Carbonara
+category:            Network
+build-type:          Simple
+cabal-version:       >=1.8
+extra-source-files:  README.md
+
+library
+  hs-source-dirs:    src
+  exposed-modules:   Pipes.HTTP.Message
+                     Pipes.HTTP.Message.Attoparsec
+                     Pipes.HTTP.Message.Types
+  other-modules:     Pipes.HTTP.Message.Attoparsec.FastSet
+  build-depends:     base             (>=4.5     && <5.0)
+                   , attoparsec       (>=0.10    && <0.11)
+                   , blaze-builder    (>=0.3     && <0.4)
+                   , bytestring       (>=0.9.2.1 && <0.11)
+                   , case-insensitive (>=0.3     && <1.1)
+                   , containers       (>=0.4     && <0.5)
+                   , http-types       (>=0.8     && <0.9)
+                   , pipes            (>=4.0     && <4.1)
+                   , pipes-attoparsec (>=0.3     && <0.4)
+                   , pipes-parse      (>=2.0     && <2.1)
+                   , time             (>=1.4     && <1.5)
+                   , free             (>=3.4     && <3.5)
