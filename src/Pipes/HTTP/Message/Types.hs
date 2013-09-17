@@ -5,10 +5,11 @@ module Pipes.HTTP.Message.Types (
   , Response(..)
   , RequestLine(..)
   , Request(..)
+  , BadHttpMessage(..)
   ) where
 
 import           Data.ByteString               (ByteString)
-import           Data.Data                     (Typeable)
+import           Data.Data                     (Data, Typeable)
 import qualified Network.HTTP.Types            as H
 import           Pipes                         (Producer)
 
@@ -48,3 +49,10 @@ instance (Monad m) => Functor (Request m) where
 
 --------------------------------------------------------------------------------
 
+data BadHttpMessage
+  = BadLeadingLine
+  | BadHeaders
+  | BadBodyShape
+  deriving (Eq, Read, Show, Data, Typeable)
+
+--------------------------------------------------------------------------------
