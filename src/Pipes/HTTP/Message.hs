@@ -71,6 +71,7 @@ parseResponseLead = do
         er2 <- Pa.parse pHeaders
         case er2 of
           Left  _      -> return $ Left BadHeaders
+          Right (_,r2) -> return $ Right (r1, r2)
 
 
 -- | Shape of the HTTP message body
