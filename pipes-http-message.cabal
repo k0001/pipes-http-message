@@ -28,7 +28,7 @@ library
                    , http-types       (>=0.8     && <0.9)
                    , pipes            (>=4.0     && <4.1)
                    , pipes-attoparsec (>=0.3     && <0.4)
-                   , pipes-bytestring (>=1.0     && <1.1)
+                   , pipes-bytestring (>=1.1     && <1.2)
                    , pipes-parse      (>=2.0     && <2.1)
                    , free             (>=3.4     && <3.5)
                    , unordered-containers (>=0.2 &&  <0.3)

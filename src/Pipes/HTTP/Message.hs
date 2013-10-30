@@ -16,7 +16,7 @@ import qualified Network.HTTP.Types            as H
 import           Pipes
 import qualified Pipes.Attoparsec              as Pa
 import qualified Pipes.ByteString              as Pb
-import           Pipes.HTTP.Message.Attoparsec (pResponseLine, pHeaders)
+import           Pipes.HTTP.Message.Attoparsec (pResponseMeta)
 import           Pipes.HTTP.Message.Types
 import qualified Pipes.Parse                   as Pp
 
@@ -28,14 +28,14 @@ parseResponses
  => Producer ByteString m r
  -> FreeT (ResponseF m) m (Either BadHttpMessage (), Producer ByteString m r)
 parseResponses p0 = FreeT $ do
-    (er1, p1) <- Pp.runStateT parseResponse p0
-    return $ case er1 of
-      Left  e1   -> Pure (Left e1, p1)
-      Right resp ->
-        case respBodyShape resp of
+    (m1, p1) <- Pp.runStateT parseResponseMeta p0
+    return $ case m1 of
+      Nothing         -> Pure (Right (), p1)
+      Just (Left  e1) -> Pure (Left e1, p1)
+      Just (Right r1) -> do
+        case resmBodyShape r1 of
           Nothing -> Pure (Left BadBodyShape, p1)
-          Just s  -> Free (ResponseF resp $ parseResponses <$> splitBody s p1)
-
+          Just s  -> Free (ResponseF r1 $ parseResponses <$> splitBody s p1)
 
 --------------------------------------------------------------------------------
 -- Internal stuff below here
@@ -51,9 +51,8 @@ bodyShape _version headers = single -- <|> chunked <|> ...
                Just [len] -> Just $ Single $ read $ B8.unpack len
                _          -> Nothing
 
-respBodyShape :: Response -> Maybe BodyShape
-respBodyShape (Response l h) = bodyShape (_reslVersion l) h
-
+resmBodyShape :: ResponseMeta -> Maybe BodyShape
+resmBodyShape rm = bodyShape (_resmVersion rm) (_resmHeaders rm)
 
 -- | Forwards downstream a single `BodyShape` from the given `Producer`,
 -- returning any leftovers.
@@ -66,19 +65,22 @@ splitBody shape p = case shape of
     Single len -> Pb.splitAt len p
 
 
--- | Attempt to parse the response line and headers from the underlying producer
-parseResponse
+
+-- | Attempt to parse the 'ResponseMeta'data from underlying producer.
+-- Returns 'Right Nothing' if end-of-file,
+parseResponseMeta
   :: Monad m
-  => Pp.StateT (Producer ByteString m r) m (Either BadHttpMessage Response)
-parseResponse = do
-    er1 <- Pa.parse pResponseLine
-    case er1 of
-      Left  _        -> return $ Left BadLeadingLine
-      Right (_,line) -> do
-        er2 <- Pa.parse pHeaders
-        return $ case er2 of
-          Left  _        -> Left  BadHeaders
-          Right (_,hdrs) -> Right (Response line hdrs)
+  => Pp.StateT (Producer ByteString m r) m
+               (Maybe (Either BadHttpMessage ResponseMeta))
+parseResponseMeta = do
+    eof <- Pb.isEndOfBytes
+    if eof
+      then return $ Nothing
+      else do
+        er1 <- Pa.parse pResponseMeta
+        return $ Just $ case er1 of
+          Left  _       -> Left BadMetadata
+          Right (_, r1) -> Right r1
 
 
 -- | Shape of the HTTP message body

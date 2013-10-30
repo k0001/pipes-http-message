@@ -65,7 +65,8 @@ import           GHC.Word                      (Word8 (..))
 import qualified Network.HTTP.Types            as H
 import           Prelude                       hiding (head, take, takeWhile)
 
-import           Pipes.HTTP.Message.Types
+import           Pipes.HTTP.Message.Types      (RequestMeta(..),
+                                                ResponseMeta(..), HttpHeaders)
 import qualified Pipes.HTTP.Message.Attoparsec.FastSet as FS
 
 ------------------------------------------------------------------------------
@@ -139,7 +140,7 @@ headersFromList = foldl' f HM.empty
     f acc (k,v) = HM.insertWith (\new old -> old ++ new) k [v] acc
 
 pHeadersList :: Parser [H.Header]
-pHeadersList = many header
+pHeadersList = many header <* crlf
   where
     --------------------------------------------------------------------------
     header            = {-# SCC "pHeaders/header" #-}
@@ -491,6 +492,7 @@ pHttpVersion = "HTTP/" *> ver
                              -- Request line parsing --
                              --------------------------
 
+data RequestLine = RequestLine !H.StdMethod !ByteString !H.HttpVersion
 
 pRequestLine :: Parser RequestLine
 pRequestLine = do
@@ -519,6 +521,8 @@ pHttpMethod =
                              -- Response line parsing --
                              ---------------------------
 
+data ResponseLine = ResponseLine !H.HttpVersion !Int !ByteString
+
 pStatusCode :: Parser Int
 pStatusCode = do
     raw <- take 3
@@ -533,3 +537,28 @@ pResponseLine = do
     code <- pStatusCode  <* char ' '
     msg  <- untilEOL     <* crlf
     return $! ResponseLine ver code msg
+
+
+------------------------------------------------------------------------------
+
+                             ------------------------------
+                             -- Request metadata parsing --
+                             ------------------------------
+
+pRequestMeta :: Parser RequestMeta
+pRequestMeta = mkRequestMeta <$> pRequestLine <*> pHeaders
+
+mkRequestMeta :: RequestLine -> HttpHeaders -> RequestMeta
+mkRequestMeta (RequestLine v c m) h = RequestMeta v c m h
+
+------------------------------------------------------------------------------
+
+                             ------------------------------
+                             -- Response metadata parsing --
+                             ------------------------------
+
+pResponseMeta :: Parser ResponseMeta
+pResponseMeta = mkResponseMeta <$> pResponseLine <*> pHeaders
+
+mkResponseMeta :: ResponseLine -> HttpHeaders -> ResponseMeta
+mkResponseMeta (ResponseLine v c m) h = ResponseMeta v c m h
