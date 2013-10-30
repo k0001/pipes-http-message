@@ -1,17 +1,26 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 
 module Pipes.HTTP.Message.Types (
-    ResponseLine(..)
+    HttpHeaders
+  , ResponseLine(..)
   , Response(..)
+  , ResponseF(..)
   , RequestLine(..)
   , Request(..)
+  , RequestF(..)
   , BadHttpMessage(..)
   ) where
 
 import           Data.ByteString               (ByteString)
+import           Data.CaseInsensitive          (CI)
 import           Data.Data                     (Data, Typeable)
 import qualified Network.HTTP.Types            as H
 import           Pipes                         (Producer)
+import qualified Data.HashMap.Strict           as HM
+
+--------------------------------------------------------------------------------
+
+type HttpHeaders = HM.HashMap (CI ByteString) [ByteString]
 
 --------------------------------------------------------------------------------
 
@@ -21,14 +30,15 @@ data ResponseLine = ResponseLine
   , _reslStatusMsg  :: !ByteString
   } deriving (Eq, Ord, Show, Typeable)
 
-data Response m r = Response
+data Response = Response
   { _resLine        :: !ResponseLine
-  , _resHeaders     :: !H.ResponseHeaders
-  , _resContent     :: !(Producer ByteString m r)
-  }
+  , _resHeaders     :: !HttpHeaders
+  } deriving (Eq, Show, Typeable)
 
-instance (Monad m) => Functor (Response m) where
-  fmap f (Response l h c) = Response l h (fmap f c)
+data ResponseF m r = ResponseF !Response !(Producer ByteString m r)
+
+instance (Monad m) => Functor (ResponseF m) where
+  fmap f (ResponseF r c) = ResponseF r (fmap f c)
 
 --------------------------------------------------------------------------------
 
@@ -38,14 +48,15 @@ data RequestLine = RequestLine
   , _reqlVersion    :: !H.HttpVersion
   } deriving (Eq, Ord, Show, Typeable)
 
-data Request m r = Request
+data Request = Request
   { _reqLine        :: !RequestLine
-  , _reqHeaders     :: !H.RequestHeaders
-  , _reqContent     :: !(Producer ByteString m r)
-  }
+  , _reqHeaders     :: !HttpHeaders
+  } deriving (Eq, Show, Typeable)
 
-instance (Monad m) => Functor (Request m) where
-  fmap f (Request l h c) = Request l h (fmap f c)
+data RequestF m r = RequestF !Request !(Producer ByteString m r)
+
+instance (Monad m) => Functor (RequestF m) where
+  fmap f (RequestF r c) = RequestF r (fmap f c)
 
 --------------------------------------------------------------------------------
 
@@ -53,6 +64,6 @@ data BadHttpMessage
   = BadLeadingLine
   | BadHeaders
   | BadBodyShape
-  deriving (Eq, Read, Show, Data, Typeable)
+  deriving (Eq, Ord, Read, Show, Data, Typeable)
 
 --------------------------------------------------------------------------------

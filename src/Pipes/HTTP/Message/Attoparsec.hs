@@ -49,12 +49,12 @@ import           Data.Bits
 import           Data.ByteString.Char8         (ByteString)
 import qualified Data.ByteString.Char8         as S
 import           Data.ByteString.Internal      (c2w, w2c)
-import qualified Data.ByteString.Lazy.Char8    as L
 import           Data.CaseInsensitive          (CI)
 import qualified Data.CaseInsensitive          as CI
 import           Data.Char                     hiding (isDigit, isSpace)
 import           Data.Int
-import           Data.List                     (intersperse)
+import           Data.List                     (intersperse, foldl')
+import qualified Data.HashMap.Strict           as HM
 import           Data.Map                      (Map)
 import qualified Data.Map                      as Map
 import           Data.Maybe
@@ -129,8 +129,17 @@ fieldCharSet = generateFS f
 
 ------------------------------------------------------------------------------
 -- | Parser for request headers.
-pHeaders :: Parser [H.Header]
-pHeaders = many header
+
+pHeaders :: Parser HttpHeaders
+pHeaders = headersFromList <$> pHeadersList
+
+headersFromList :: [H.Header] -> HttpHeaders
+headersFromList = foldl' f HM.empty
+  where
+    f acc (k,v) = HM.insertWith (\new old -> old ++ new) k [v] acc
+
+pHeadersList :: Parser [H.Header]
+pHeadersList = many header
   where
     --------------------------------------------------------------------------
     header            = {-# SCC "pHeaders/header" #-}

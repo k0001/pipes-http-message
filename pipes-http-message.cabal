@@ -31,3 +31,4 @@ library
                    , pipes-bytestring (>=1.0     && <1.1)
                    , pipes-parse      (>=2.0     && <2.1)
                    , free             (>=3.4     && <3.5)
+                   , unordered-containers (>=0.2 &&  <0.3)
