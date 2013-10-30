@@ -9,3 +9,5 @@ dist
 TAGS
 .cabal-sandbox/
 cabal.sandbox.config
+.shelly
+vendor/*
